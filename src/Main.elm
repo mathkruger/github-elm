@@ -1,12 +1,14 @@
 module Main exposing (..)
 
 import Browser
-import Html exposing (Html, a, button, div, h1, h2, img, input, li, p, text, ul)
+import Html exposing (Html, a, button, div, figure, h1, h2, img, input, li, p, text, ul)
 import Html.Attributes exposing (class, href, placeholder, src, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode exposing (Decoder, int, string)
 import Json.Decode.Pipeline exposing (optional, required)
+import Svg exposing (animateTransform, circle, path, svg)
+import Svg.Attributes exposing (attributeName, attributeType, begin, cx, cy, d, dur, enableBackground, fill, from, r, repeatCount, stroke, to, type_, values, viewBox, x, y)
 
 
 
@@ -104,7 +106,7 @@ update msg model =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.none
 
 
@@ -114,35 +116,60 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-    div [ class "application-wrapper" ]
-        [ div [ class "header" ] [ h1 [] [ text "Github User" ] ]
-        , div [ class "input-form" ]
-            [ input [ placeholder "Digite o usuário", onInput UsernameChanged, value model.username ] []
-            , button [ class "submit-button", onClick UserRequested ] [ text "Pesquisar" ]
-            , button [ class "clean-button", onClick CleanResults ] [ text "Limpar" ]
+    div []
+        [ div [ class "hero is-primary" ]
+            [ div [ class "hero-body" ]
+                [ p [ class "title" ]
+                    [ text "Github User" ]
+                , p [ class "subtitle" ]
+                    [ text "Procure por usuários do github" ]
+                ]
             ]
-        , div [ class "user-received" ] [ viewUser model.user ]
-        , h2 [] [ text "Repositórios" ]
-        , div [ class "repos-received" ] [ viewRepos model.repos ]
+        , div [ class "container px-4" ]
+            [ div [ class "box block mt-4" ]
+                [ div [ class "field has-addons" ]
+                    [ div [ class "control" ]
+                        [ input [ class "input", placeholder "Digite um username", onInput UsernameChanged, value model.username ]
+                            []
+                        ]
+                    , div [ class "control" ]
+                        [ button [ class "button is-success", onClick UserRequested ] [ text "Pesquisar" ]
+                        ]
+                    , div [ class "control" ]
+                        [ button [ class "button is-info", onClick CleanResults ] [ text "Limpar" ]
+                        ]
+                    ]
+                ]
+            , viewUser model.user
+            , viewRepos model.repos
+            ]
         ]
+
+
+viewLoading : Html Msg
+viewLoading =
+    text "Carregando ..."
 
 
 viewUser : Request User -> Html Msg
 viewUser request =
     case request of
         Waiting ->
-            text "Digite um usuário para obter o perfil"
+            text ""
 
         Loading ->
-            text "Carregando"
+            viewLoading
 
         Failure error ->
             viewFailure error
 
         Success user ->
-            div []
+            div [ class "box block user-received" ]
                 [ h2 [] [ text ("(" ++ user.login ++ ") " ++ user.name) ]
-                , img [ src user.avatarUrl ] []
+                , figure [ class "image is-128x128" ]
+                    [ img [ src user.avatarUrl ]
+                        []
+                    ]
                 , p [] [ text ("Empresa: " ++ user.company) ]
                 , p [] [ text ("Localização: " ++ user.location) ]
                 , p [] [ text "Website: ", a [ href user.blog ] [ text user.blog ] ]
@@ -157,25 +184,26 @@ viewRepos request =
             text ""
 
         Loading ->
-            text "Carregando repositórios ..."
+            viewLoading
 
         Failure error ->
             viewFailure error
 
         Success repos ->
             ul
-                [ class "repo-list" ]
+                [ class "box block repos-received" ]
                 (List.map
                     (\item ->
                         li []
                             [ p [] [ text item.fullName ]
                             , p [] [ text ("Descrição: " ++ item.description) ]
-                            , p [] [ text ("Stars: " ++ (String.fromInt item.stars)) ]
-                            , p [] [ text ("Watchers: " ++ (String.fromInt item.watchers)) ]
-                            , p [] [ text ("Forks: " ++ (String.fromInt item.forks)) ]
+                            , p [] [ text ("Stars: " ++ String.fromInt item.stars) ]
+                            , p [] [ text ("Watchers: " ++ String.fromInt item.watchers) ]
+                            , p [] [ text ("Forks: " ++ String.fromInt item.forks) ]
                             , p [] [ text ("Linguagem: " ++ item.language) ]
                             ]
-                    ) repos
+                    )
+                    repos
                 )
 
 
