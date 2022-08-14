@@ -1,14 +1,12 @@
 module Main exposing (..)
 
 import Browser
-import Html exposing (Html, a, button, div, figure, h1, h2, img, input, li, p, text, ul)
+import Html exposing (Html, a, button, div, figure, h3, img, input, li, p, strong, text, ul)
 import Html.Attributes exposing (class, href, placeholder, src, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode exposing (Decoder, int, string)
 import Json.Decode.Pipeline exposing (optional, required)
-import Svg exposing (animateTransform, circle, path, svg)
-import Svg.Attributes exposing (attributeName, attributeType, begin, cx, cy, d, dur, enableBackground, fill, from, r, repeatCount, stroke, to, type_, values, viewBox, x, y)
 
 
 
@@ -140,8 +138,10 @@ view model =
                         ]
                     ]
                 ]
-            , viewUser model.user
-            , viewRepos model.repos
+            , div [ class "columns" ]
+                [ div [ class "column is-half" ] [ viewUser model.user ]
+                , div [ class "column is-half" ] [ viewRepos model.repos ]
+                ]
             ]
         ]
 
@@ -165,15 +165,20 @@ viewUser request =
 
         Success user ->
             div [ class "box block user-received" ]
-                [ h2 [] [ text ("(" ++ user.login ++ ") " ++ user.name) ]
-                , figure [ class "image is-128x128" ]
-                    [ img [ src user.avatarUrl ]
-                        []
+                [ div [ class "columns" ]
+                    [ div [ class "column is-half" ]
+                        [ figure [ class "image is-square" ]
+                            [ img [ class "is-rounded", src user.avatarUrl ] []
+                            ]
+                        ]
+                    , div [ class "column is-half" ]
+                        [ p [ class "is-size-4" ] [ strong [] [ text ("(" ++ user.login ++ ") " ++ user.name) ] ]
+                        , p [] [ strong [] [ text "Empresa: " ], text user.company ]
+                        , p [] [ strong [] [ text "Localização: " ], text user.location ]
+                        , p [] [ strong [] [ text "Website: " ], a [ href user.blog ] [ text user.blog ] ]
+                        , p [] [ strong [] [ text "Bio: " ], text user.bio ]
+                        ]
                     ]
-                , p [] [ text ("Empresa: " ++ user.company) ]
-                , p [] [ text ("Localização: " ++ user.location) ]
-                , p [] [ text "Website: ", a [ href user.blog ] [ text user.blog ] ]
-                , p [] [ text ("Bio: " ++ user.bio) ]
                 ]
 
 
@@ -190,21 +195,24 @@ viewRepos request =
             viewFailure error
 
         Success repos ->
-            ul
-                [ class "box block repos-received" ]
-                (List.map
-                    (\item ->
-                        li []
-                            [ p [] [ text item.fullName ]
-                            , p [] [ text ("Descrição: " ++ item.description) ]
-                            , p [] [ text ("Stars: " ++ String.fromInt item.stars) ]
-                            , p [] [ text ("Watchers: " ++ String.fromInt item.watchers) ]
-                            , p [] [ text ("Forks: " ++ String.fromInt item.forks) ]
-                            , p [] [ text ("Linguagem: " ++ item.language) ]
-                            ]
+            div []
+                [ h3 [ class "is-size-3 has-text-weight-bold mb-4" ] [ text "Repositórios" ]
+                , ul
+                    [ class "repos-received" ]
+                    (List.map
+                        (\item ->
+                            li [ class "box block" ]
+                                [ strong [ ] [ text item.fullName ]
+                                , p [] [ text ("Descrição: " ++ item.description) ]
+                                , p [] [ text ("Stars: " ++ String.fromInt item.stars) ]
+                                , p [] [ text ("Watchers: " ++ String.fromInt item.watchers) ]
+                                , p [] [ text ("Forks: " ++ String.fromInt item.forks) ]
+                                , p [] [ text ("Linguagem: " ++ item.language) ]
+                                ]
+                        )
+                        repos
                     )
-                    repos
-                )
+                ]
 
 
 viewFailure : Http.Error -> Html Msg
@@ -280,6 +288,7 @@ repoDecoder =
 -- MAIN
 
 
+main : Program () Model Msg
 main =
     Browser.element
         { init = init
