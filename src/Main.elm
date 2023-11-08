@@ -7,6 +7,7 @@ import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode exposing (Decoder, int, string)
 import Json.Decode.Pipeline exposing (optional, required)
+import Html.Attributes exposing (target)
 
 
 
@@ -15,6 +16,7 @@ import Json.Decode.Pipeline exposing (optional, required)
 
 type alias Model =
     { username : String
+    , repoNameFilter : String
     , user : Request User
     , repos : Request (List Repo)
     }
@@ -50,9 +52,14 @@ type alias Repo =
     }
 
 
+getCleanModel : () -> Model
+getCleanModel _ =
+    { username = "", repoNameFilter = "", user = Waiting, repos = Waiting }
+
+
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { username = "", user = Waiting, repos = Waiting }, Cmd.none )
+    ( getCleanModel (), Cmd.none )
 
 
 
@@ -61,6 +68,7 @@ init _ =
 
 type Msg
     = UsernameChanged String
+    | RepoNameFilterChanged String
     | UserRequested
     | UserReceived (Result Http.Error User)
     | ReposReceived (Result Http.Error (List Repo))
@@ -72,6 +80,9 @@ update msg model =
     case msg of
         UsernameChanged newUsername ->
             ( { model | username = newUsername }, Cmd.none )
+
+        RepoNameFilterChanged newReponame ->
+            ( { model | repoNameFilter = newReponame }, Cmd.none )
 
         -- Requesting the user
         UserRequested ->
@@ -96,7 +107,7 @@ update msg model =
 
         -- Cleaning all the results
         CleanResults ->
-            ( { username = "", user = Waiting, repos = Waiting }, Cmd.none )
+            ( getCleanModel (), Cmd.none )
 
 
 
@@ -140,7 +151,7 @@ view model =
                 ]
             , div [ class "columns" ]
                 [ div [ class "column is-half" ] [ viewUser model.user ]
-                , div [ class "column is-half" ] [ viewRepos model.repos ]
+                , div [ class "column is-half" ] [ viewRepos model.repos model ]
                 ]
             ]
         ]
@@ -182,8 +193,8 @@ viewUser request =
                 ]
 
 
-viewRepos : Request (List Repo) -> Html Msg
-viewRepos request =
+viewRepos : Request (List Repo) -> Model -> Html Msg
+viewRepos request model =
     case request of
         Waiting ->
             text ""
@@ -197,22 +208,31 @@ viewRepos request =
         Success repos ->
             div []
                 [ h3 [ class "is-size-3 has-text-weight-bold mb-4" ] [ text "Repositórios" ]
+                , input [ class "input mb-2", placeholder "Filtrar repositórios", onInput RepoNameFilterChanged, value model.repoNameFilter ]
+                    []
                 , ul
                     [ class "repos-received" ]
-                    (List.map
-                        (\item ->
-                            li [ class "box block" ]
-                                [ strong [ ] [ text item.fullName ]
-                                , p [] [ text ("Descrição: " ++ item.description) ]
-                                , p [] [ text ("Stars: " ++ String.fromInt item.stars) ]
-                                , p [] [ text ("Watchers: " ++ String.fromInt item.watchers) ]
-                                , p [] [ text ("Forks: " ++ String.fromInt item.forks) ]
-                                , p [] [ text ("Linguagem: " ++ item.language) ]
-                                ]
-                        )
-                        repos
+                    (List.filter (\item -> filterRepo model item.name) repos
+                        |> List.map
+                            (\item ->
+                                li [ class "mb-4" ]
+                                    [ a [ href ("http://github.com/" ++ item.fullName), class "box block", target "_blank" ]
+                                        [ strong [] [ text item.name ]
+                                        , p [] [ text ("Descrição: " ++ item.description) ]
+                                        , p [] [ text ("Stars: " ++ String.fromInt item.stars) ]
+                                        , p [] [ text ("Watchers: " ++ String.fromInt item.watchers) ]
+                                        , p [] [ text ("Forks: " ++ String.fromInt item.forks) ]
+                                        , p [] [ text ("Linguagem: " ++ item.language) ]
+                                        ]
+                                    ]
+                            )
                     )
                 ]
+
+
+filterRepo : Model -> String -> Bool
+filterRepo model field =
+    String.isEmpty model.repoNameFilter || String.contains (String.toLower model.repoNameFilter) (String.toLower field)
 
 
 viewFailure : Http.Error -> Html Msg
