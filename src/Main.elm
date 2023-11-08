@@ -1,13 +1,13 @@
 module Main exposing (..)
 
 import Browser
+import Consts exposing (..)
 import Html exposing (Html, a, button, div, figure, h3, img, input, li, p, strong, text, ul)
 import Html.Attributes exposing (class, href, placeholder, src, target, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode exposing (Decoder, int, string)
 import Json.Decode.Pipeline exposing (optional, required)
-import Consts exposing (..)
 
 
 
@@ -84,7 +84,6 @@ update msg model =
         RepoNameFilterChanged newReponame ->
             ( { model | repoNameFilter = newReponame }, Cmd.none )
 
-        -- Requesting the user
         UserRequested ->
             ( { model | user = Loading }, getGithubUser model.username )
 
@@ -96,7 +95,6 @@ update msg model =
                 Err err ->
                     ( { model | user = Failure err }, Cmd.none )
 
-        -- Requesting the user repos
         ReposReceived result ->
             case result of
                 Ok repos ->
@@ -149,9 +147,9 @@ view model =
                         ]
                     ]
                 ]
-            , div [ class "columns" ]
-                [ div [ class "column is-half" ] [ viewUser model.user ]
-                , div [ class "column is-half" ] [ viewRepos model.repos model ]
+            , div [ class "columns is-multiline is-mobile" ]
+                [ div [ class "column is-full mb-4" ] [ viewUser model.user ]
+                , div [ class "column is-full" ] [ viewRepos model.repos model ]
                 ]
             ]
         ]
@@ -159,7 +157,7 @@ view model =
 
 viewLoading : Html Msg
 viewLoading =
-    text "Carregando ..."
+    div [ class "loader" ] []
 
 
 viewUser : Request User -> Html Msg
@@ -176,17 +174,17 @@ viewUser request =
 
         Success user ->
             div [ class "box block user-received" ]
-                [ div [ class "columns" ]
-                    [ div [ class "column is-half" ]
-                        [ figure [ class "image is-square" ]
+                [ div [ class "columns is-vcentered" ]
+                    [ div [ class "column is-narrow" ]
+                        [ figure [ class "image is-128x128" ]
                             [ img [ class "is-rounded", src user.avatarUrl ] []
                             ]
                         ]
-                    , div [ class "column is-half" ]
+                    , div [ class "column" ]
                         [ p [ class "is-size-4" ] [ strong [] [ text ("(" ++ user.login ++ ") " ++ user.name) ] ]
                         , p [] [ strong [] [ text "Empresa: " ], text user.company ]
                         , p [] [ strong [] [ text "Localização: " ], text user.location ]
-                        , p [] [ strong [] [ text "Website: " ], a [ href user.blog ] [ text user.blog ] ]
+                        , p [] [ strong [] [ text "Website: " ], a [ href user.blog, target "_blank" ] [ text user.blog ] ]
                         , p [] [ strong [] [ text "Bio: " ], text user.bio ]
                         ]
                     ]
@@ -206,12 +204,12 @@ viewRepos request model =
             viewFailure error
 
         Success repos ->
-            div []
+            div [ ]
                 [ h3 [ class "is-size-3 has-text-weight-bold mb-4" ] [ text "Repositórios" ]
                 , input [ class "input mb-2", placeholder "Filtrar repositórios", onInput RepoNameFilterChanged, value model.repoNameFilter ]
                     []
                 , ul
-                    [ class "repos-received" ]
+                    [ class "columns is-multiline is-mobile repos-received" ]
                     (repos
                         |> List.filter (\item -> filterRepos model.repoNameFilter item.name)
                         |> List.map (\item -> viewSingleRepo item)
@@ -221,10 +219,10 @@ viewRepos request model =
 
 viewSingleRepo : Repo -> Html msg
 viewSingleRepo item =
-    li [ class "mb-4" ]
+    li [ class "column is-one-third" ]
         [ a [ href (githubUrlPrefix ++ item.fullName), class "box block", target "_blank" ]
             [ strong [] [ text item.name ]
-            , p [] [ text ("Descrição: " ++ item.description) ]
+            , p [ class "text-limited" ] [ text ("Descrição: " ++ item.description) ]
             , p [] [ text ("Stars: " ++ String.fromInt item.stars) ]
             , p [] [ text ("Watchers: " ++ String.fromInt item.watchers) ]
             , p [] [ text ("Forks: " ++ String.fromInt item.forks) ]
