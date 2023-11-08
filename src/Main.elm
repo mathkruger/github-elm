@@ -2,12 +2,12 @@ module Main exposing (..)
 
 import Browser
 import Html exposing (Html, a, button, div, figure, h3, img, input, li, p, strong, text, ul)
-import Html.Attributes exposing (class, href, placeholder, src, value)
+import Html.Attributes exposing (class, href, placeholder, src, target, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode exposing (Decoder, int, string)
 import Json.Decode.Pipeline exposing (optional, required)
-import Html.Attributes exposing (target)
+import Consts exposing (..)
 
 
 
@@ -212,27 +212,30 @@ viewRepos request model =
                     []
                 , ul
                     [ class "repos-received" ]
-                    (List.filter (\item -> filterRepo model item.name) repos
-                        |> List.map
-                            (\item ->
-                                li [ class "mb-4" ]
-                                    [ a [ href ("http://github.com/" ++ item.fullName), class "box block", target "_blank" ]
-                                        [ strong [] [ text item.name ]
-                                        , p [] [ text ("Descrição: " ++ item.description) ]
-                                        , p [] [ text ("Stars: " ++ String.fromInt item.stars) ]
-                                        , p [] [ text ("Watchers: " ++ String.fromInt item.watchers) ]
-                                        , p [] [ text ("Forks: " ++ String.fromInt item.forks) ]
-                                        , p [] [ text ("Linguagem: " ++ item.language) ]
-                                        ]
-                                    ]
-                            )
+                    (repos
+                        |> List.filter (\item -> filterRepos model.repoNameFilter item.name)
+                        |> List.map (\item -> viewSingleRepo item)
                     )
                 ]
 
 
-filterRepo : Model -> String -> Bool
-filterRepo model field =
-    String.isEmpty model.repoNameFilter || String.contains (String.toLower model.repoNameFilter) (String.toLower field)
+viewSingleRepo : Repo -> Html msg
+viewSingleRepo item =
+    li [ class "mb-4" ]
+        [ a [ href (githubUrlPrefix ++ item.fullName), class "box block", target "_blank" ]
+            [ strong [] [ text item.name ]
+            , p [] [ text ("Descrição: " ++ item.description) ]
+            , p [] [ text ("Stars: " ++ String.fromInt item.stars) ]
+            , p [] [ text ("Watchers: " ++ String.fromInt item.watchers) ]
+            , p [] [ text ("Forks: " ++ String.fromInt item.forks) ]
+            , p [] [ text ("Linguagem: " ++ item.language) ]
+            ]
+        ]
+
+
+filterRepos : String -> String -> Bool
+filterRepos filterTerm field =
+    String.isEmpty filterTerm || String.contains (String.toLower filterTerm) (String.toLower field)
 
 
 viewFailure : Http.Error -> Html Msg
@@ -261,7 +264,7 @@ viewFailure error =
 getGithubUser : String -> Cmd Msg
 getGithubUser username =
     Http.get
-        { url = "https://api.github.com/users/" ++ username
+        { url = githubApiPrefix ++ username
         , expect = Http.expectJson UserReceived userDecoder
         }
 
@@ -269,7 +272,7 @@ getGithubUser username =
 getUserRepos : String -> Cmd Msg
 getUserRepos username =
     Http.get
-        { url = "https://api.github.com/users/" ++ username ++ "/repos?per_page=100"
+        { url = githubApiPrefix ++ username ++ "/repos?per_page=100"
         , expect = Http.expectJson ReposReceived reposDecoder
         }
 
